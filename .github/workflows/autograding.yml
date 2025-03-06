@@ -1,0 +1,86 @@
+name: Assignment Autograding
+
+on: 
+  push:
+    branches:
+      - '**'
+  
+jobs:
+  autograding:
+    name: Autograding
+    runs-on: ubuntu-latest
+
+    steps:
+    # Step 1: Checkout the repository
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    # Step 2: Set up Python
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version-file: 'pyproject.toml' # Read python version from a file pyproject.toml
+        cache: 'pip'
+
+    # Check Task 2: Poetry Setup
+    - name: Check Task 2
+      run: |
+        python --version
+        python -m pip install --upgrade pip
+        pip install poetry
+        
+        if [ -f "pyproject.toml" ] && [ -f "poetry.lock" ]; then
+          echo "Poetry setup verified."
+          poetry install
+        else
+          echo "Error: Poetry files not found."
+          exit 1
+        fi
+    # Check Task 3: Restructured Repository
+    - name: Check Task 3
+      run: |
+        if [ -d "src/opticaldisp" ] && [ -f "src/opticaldisp/waveforms.py" ] && [ -f "src/opticaldisp/optical_signals.py" ] && [ -f "src/opticaldisp/dispersion.py" ]; then
+          echo "Repository structure verified."
+        else
+          echo "Error: Restructured repository files missing."
+          exit 1
+        fi
+    # Check Task 4: Linting with Ruff
+    - name: Check Task 4
+      run: |
+        poetry run ruff check . || exit 1
+    # Check Task 5: LICENSE File
+    - name: Check Task 5
+      run: |
+        if [ -f "LICENSE" ]; then
+          echo "LICENSE file verified."
+        else
+          echo "Error: LICENSE file not found."
+          exit 1
+        fi
+        
+    # Check Task 6: Unit Tests
+    - name: Check Task 6
+      run: |
+        if [ -d "tests" ] ; then
+          poetry run pytest tests/
+        else
+          echo "Error: Unit tests not implemented."
+          exit 1
+        fi
+        
+    # Check Task 7: Final Repository Structure
+    - name: Check Task 7
+      run: |
+        REQUIRED_FILES="README.md LICENSE src/opticaldisp/waveforms.py src/opticaldisp/optical_signals.py src/opticaldisp/dispersion.py tests/"
+        for FILE in $REQUIRED_FILES; do
+          if [ ! -f "$FILE" ] && [ ! -d "$FILE"]; then
+            echo "Error: $FILE is missing."
+            exit 1
+          fi
+        done
+        echo "Final repository structure verified."
+    # Provide progress in pull request
+    - name: Update PR status
+      if: success()
+      run: echo "All tasks passed! 🎉"
